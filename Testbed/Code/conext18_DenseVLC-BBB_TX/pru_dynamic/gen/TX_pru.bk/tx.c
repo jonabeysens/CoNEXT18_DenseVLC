@@ -1,0 +1,170 @@
+/************************************************************************************
+// Author: Diego Juara
+// IMDEA Networks
+// From the previus code of Hongjia Wu from Delft University of Technology and Derek Molloy
+*************************************************************************************/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include<errno.h>
+#include<string.h>
+#include<unistd.h>
+
+#define MAX_BUF 64       //File name for on board adc
+#define PRU_NUM 1		//PRU 0 is used, PRU 1 is free. (Two PRUs in BBB besides main ARM processor)
+#define NTHREADS 1		// An extra thread handling user input and the main thread is for initiating PRU
+#define PRU_ADDR 0x4A300000
+#define FREQUENCY_OFFSET 0x00010000
+#define TX1_OFFSET 0x00002000
+#define TX2_OFFSET 0x00003000
+#define TX3_OFFSET 0x00011000
+#define TX4_OFFSET 0x00012000
+#define TX_PRU_NUM	   1
+#define MMAP0_LOC   "/sys/class/uio/uio0/maps/map0/"
+#define MMAP1_LOC   "/sys/class/uio/uio0/maps/map1/"
+
+#define BUFFER_LENGTH 32001     
+
+static int ret, fd_vlc, fd_mem, fd_debug;
+
+
+
+//Shared memory pointer
+ulong* tx1;
+ulong* tx2;
+ulong* tx3;
+ulong* tx4;
+ulong* config;
+
+void *transmit(void *arg)
+{
+	int i,cnt1,cnt2,cnt3,cnt4;
+	unsigned int tmp1,tmp2,tmp3,tmp4,mask1,mask2,mask3,mask4;
+	
+	// Init the flag positions to 0
+	tx1[0]=0;
+	tx2[0]=0;
+	tx3[0]=0;
+	tx4[0]=0;
+	config[1]=0;
+	
+	// Example data to transmit, next step is to connect the kernel and receive this frames from the kernel
+	char* tx1_data = "1010101010101010101010101010101000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000000010001000100010001000100010000000100010001000100010001000100000001000100010001000100010001000";
+	
+	while(1){
+		// Setting up the frequency
+		config[0] = 1000;   //Number_of_cycles=(1/(10e-9*X(kHz))) EX (100 kHz -> 1/(10e-9 * 100e3) = 1000
+		printf("Press enter to start\n");
+		getchar();
+		//while((tx1_data[0]==0)&&(tx2_data[0]==0)&&(tx3_data[0]==0)&&(tx4_data[0]==0));
+		
+		mask1=0x80000000,mask2=0x80000000,mask3=0x80000000,mask4=0x80000000;
+		tmp1=0,tmp2=0,tmp3=0,tmp4=0;
+		cnt1=6,cnt2=1,cnt3=1,cnt4=1; // 2 before 
+		i = 0;
+		// Start to store each bit on its corresponding TX, grouping the bits in groups of 
+		// 32 bits (1 address of memory -> 32 bits)
+		while ((i<strlen(tx1_data)))
+		{
+			// Storing data in TX1 area of memory
+			if(i<strlen(tx1_data))
+			{
+				if (tx1_data[i] == '1')tmp1=tmp1+mask1;
+				mask1=(mask1>>1);
+				if ((mask1 == 0)||(i==(strlen(tx1_data)-1)))
+				{
+					tx1[cnt1]=tmp1;
+					printf("Value %d, %x\n",cnt1, tx1[cnt1]);
+					cnt1++;
+					mask1=0x80000000;
+					tmp1=0;
+					
+				}
+			}
+			i++;
+		}
+		
+		
+		tx1[1] = 0;
+		tx1[2] = 1;
+		tx1[3] = 0;
+		tx1[4]=strlen(tx1_data)+(32-(strlen(tx1_data)%32))+32;
+		tx1[5] = 0x99999999;
+		tx1[0] = 20;
+		// Storing a 1 on this address make the PRU start TX
+		config[1]=1;
+		
+		
+		cnt1=1,cnt2=1,cnt3=1,cnt4=1;
+		printf("Press enter to stop\n");
+		getchar();
+		config[1] = 0;//while(config[1]!=0);// Waiting TX to end
+	
+	}
+	int unmap_error;
+	printf("End of the program\n");
+	unmap_error = munmap(tx1,0x10000);
+	if(unmap_error!=0)
+	{
+		printf("Unmap Error\n");
+		//exit(0); 
+	}
+	unmap_error = munmap(tx2,0x10000);
+	if(unmap_error!=0)
+	{
+		printf("Unmap Error\n");
+		//exit(0); 
+	}
+	unmap_error = munmap(tx3,0x10000);
+	if(unmap_error!=0)
+	{
+		printf("Unmap Error\n");
+		//exit(0); 
+	}
+	unmap_error = munmap(tx4,0x10000);
+	if(unmap_error!=0)
+	{
+		printf("Unmap Error\n");
+		//exit(0); 
+	}
+   
+}
+
+/************************************************************************************
+    Main function that initilizes PRU
+*************************************************************************************/
+int main (void)
+{  
+	if(getuid()!=0){
+      printf("You must run this program as root. Exiting.\n");
+      exit(EXIT_FAILURE);
+    }
+	printf("Starting device test code example...\n");
+   
+	
+	// Map shared memory
+	int fd_mem = open("/dev/mem",O_RDWR | O_SYNC);
+	tx1 = (ulong*) mmap(NULL, 0x10000, PROT_READ | PROT_WRITE, MAP_SHARED, fd_mem, PRU_ADDR+TX1_OFFSET);
+	tx2 = (ulong*) mmap(NULL, 0x10000, PROT_READ | PROT_WRITE, MAP_SHARED, fd_mem, PRU_ADDR+TX2_OFFSET);
+	tx3 = (ulong*) mmap(NULL, 0x10000, PROT_READ | PROT_WRITE, MAP_SHARED, fd_mem, PRU_ADDR+TX3_OFFSET);
+	tx4 = (ulong*) mmap(NULL, 0x10000, PROT_READ | PROT_WRITE, MAP_SHARED, fd_mem, PRU_ADDR+TX4_OFFSET);
+	config = (ulong*) mmap(NULL, 0x10000, PROT_READ | PROT_WRITE, MAP_SHARED, fd_mem, PRU_ADDR+FREQUENCY_OFFSET);
+	
+	
+    
+	
+    //UI Thread
+    int tx;
+	pthread_t threads[NTHREADS];
+	tx = pthread_create(&threads[0], NULL, transmit, NULL);
+	if(tx!=0)
+	{
+		printf("Error starting the thread tx\n");
+	}
+	
+	while(1);
+	
+    return EXIT_SUCCESS;
+}
