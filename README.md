@@ -12,4 +12,4 @@ This folder contains a more detailed [README](Analysis/README.md).
 In case you have questions or comments, you can contact us at jona.beysens@kuleuven.be
 
 ## License
-DenseVLC is released under GNU General Public License v3.0 - see the [LICENSE](/LICENSE) file for details
+DenseVLC is released under GNU General Public License v3.0 - see the [LICENSE](/LICENSE.md) file for details
