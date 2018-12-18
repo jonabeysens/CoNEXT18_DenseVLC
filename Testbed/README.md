@@ -1,6 +1,6 @@
 # Overview testbed
 
-The testbed consists of three main components: the controller, the transmitters, and the receivers. Pictures are included in the folder "Pictures". 
+The testbed consists of three main components: the controller, the transmitters, and the receivers. Pictures are included in the folder [Pictures](Pictures). 
 
 The system contains 1 BBB (controller (MX)) + 9 BBBs (to transmit) + 4 BBB wireless (to receive). 
 Every BBB for transmitting controls four TXs. Each RX is equipped with a single BBB Wireless. All BBBs are equipped with a receiver cape, as discussed in the paper.  
