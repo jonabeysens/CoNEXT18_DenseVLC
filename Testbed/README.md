@@ -9,15 +9,14 @@ Furthermore, a connection is set up between the controller and a Matlab script i
 ### PART 1 ###
 
 In the following will be presented how channel measurements can be performed on the testbed: 
-
-1. initialize all components (controller (MX), transmitters, receivers) 
 ---------
+1. initialize all components (controller (MX), transmitters, receivers) 
 - in the MX repository, go to the folder conext18_DenseVLC_MX
 - go to the folder scripts
 - initialize all components by running "./initalize_all.sh". This will initialize the MX kernel, TX kernels and RX kernels, as well as the TX PRU and RX PRU code
 
-2. run the Matlab script
 ---------
+2. run the Matlab script
 - open "comm_mx.m" script in Matlab R2017b
 - run the script
 - enter the command "1" to perform a channel measurement without sending the reply back to the MX
@@ -27,20 +26,19 @@ In the following will be presented how channel measurements can be performed on 
 ### PART 2 ###
 
 In the following, the steps for performing an iperf measurement with synchronization are listed: 
-
-1. initialize all components
 ---------
+1. initialize all components
 -see above
 
-2. run the Matlab script
 ---------
+2. run the Matlab script
 - open "comm_mx.m" script in Matlab R2017b
 - run the script
 - enter the command "2" to set the TXs that should be used for the iperf measurment (for example TX1, TX2, TX7, TX8)
 - enter the command "3" to set the leading TX required for the synchronization
+---------
 
 3. run the client and server code
----------
 - in the RX repository, go to the rx_kerneldriver folder and run the script "iperf_server.sh"
 - in the MX repository, go to the mx_kernelderiver folder and run the script "iperf_client.sh"
 - the measurement starts!
