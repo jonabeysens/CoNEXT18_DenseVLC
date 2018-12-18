@@ -6,10 +6,11 @@ Every BBB for transmitting controls four TXs. Each RX is equipped with a single 
 A local WLAN network should be set up, so the controller can communicate with the transmitters via Ethernet and with the receivers via WiFi. 
 Furthermore, a connection is set up between the controller and a Matlab script in order to transfer data for further analysis.
 
-### PART 1 ###
+### PART 1
 
 In the following will be presented how channel measurements can be performed on the testbed: 
----------
+
+
 1. initialize all components (controller (MX), transmitters, receivers) 
 - in the MX repository, go to the folder conext18_DenseVLC_MX
 - go to the folder scripts
@@ -23,12 +24,13 @@ In the following will be presented how channel measurements can be performed on 
 - enter the command "4" to perform a channel measurement from a specific TX and send back the reply to the MX
 
 
-### PART 2 ###
+### PART 2
 
 In the following, the steps for performing an iperf measurement with synchronization are listed: 
----------
+
+
 1. initialize all components
--see above
+- see above
 
 ---------
 2. run the Matlab script
